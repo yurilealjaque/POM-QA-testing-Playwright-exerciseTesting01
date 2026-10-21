@@ -15,6 +15,7 @@ test.describe("Pruebas de Registro e2e", () =>{
         await expect(page.getByText('Logout', { exact: true})).toHaveText('Logout');
 
     });
+    
 /*
     test('Registro con password diferente', async ({ page }) =>{
 
