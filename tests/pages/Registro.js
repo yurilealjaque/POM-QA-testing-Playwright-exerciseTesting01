@@ -19,30 +19,43 @@ class RegistroPage {
 
     }
 
-    async llenarEmailAddress(){
+    async llenarEmailAddress(value){
+        await this.inputEmailAddress.fill(value)
         
     }
 
-    async llenarPassword(){
+    async llenarPassword(value){
+        await this.inputPassword.fill(value)
         
     }
 
-    async llenarConfirmPassword(){
+    async llenarConfirmPassword(value){
+        await this.inputConfirmPassword.fill(value)
         
     }
 
     async clicarBotonCreateAccount(){
+        await this.botonCreateAccount.click()
         
     }
     
-    async registrar(){
-        await this.llenarFullName();
-        await this.llenarEmailAddress();
-        await this.llenarPassword();
-        await this.llenarConfirmPassword();
+    async registrar(fullName, emailAddress, password, confirmPassword){
+        // Se entra a la pagina
+
+        await this.page.goto('https://ecommerce-js-test.vercel.app/');
+        await this.page.getByRole('link', { name: 'Register' })
+
+        // se accede a los metodos
+
+        await this.llenarFullName(fullName);
+        await this.llenarEmailAddress(emailAddress);
+        await this.llenarPassword(password);
+        await this.llenarConfirmPassword(confirmPassword);
         await this.clicarBotonCreateAccount();
 
         
     }
 
 }
+
+export default RegistroPage;
