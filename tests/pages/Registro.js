@@ -43,7 +43,7 @@ class RegistroPage {
         // Se entra a la pagina
 
         await this.page.goto('https://ecommerce-js-test.vercel.app/');
-        await this.page.getByRole('link', { name: 'Register' })
+        await this.page.getByRole('link', { name: 'Register' }).click(); 
 
         // se accede a los metodos
 
