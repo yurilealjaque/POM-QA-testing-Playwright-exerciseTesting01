@@ -9,7 +9,7 @@ class RegistroPage {
         this.inputPassword = this.page.getByLabel('Password', { exact: true });
         this.inputConfirmPassword = this.page.getByLabel('Confirm Password', { exact: true });
         this.botonCreateAccount = this.page.getByRole('button', { name: 'Create Account' });
-        this.mensajeError = this.page.getByText('Password must be at least 6 characters long', { exact: true });
+        this.mensajeError = this.mensajeError = this.page.locator('div.bg-red-50.border.border-red-200.rounded-lg.p-4.mb-6')
     }
 
     // Acciones
