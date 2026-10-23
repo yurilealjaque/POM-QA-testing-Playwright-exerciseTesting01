@@ -24,13 +24,13 @@ class LoginPage {
     } 
 
     async llenarPasswordLogin(value){
-        await this.PasswordLogin.fill(value)  
+        await this.inputPasswordLogin.fill(value)  
     
     }
 
     async clickbotonSingInLogin(value){
 
-        await this.botonSingInLogin(value)
+        await this.botonSingInLogin.click()
     }
 
 
