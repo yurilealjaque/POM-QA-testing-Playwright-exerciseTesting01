@@ -16,6 +16,11 @@ test.describe('Prubas de login e2e ' , () => {
 
 
     })
+     test('Registro con password inválido', async ({ page }) => {
+        await loginPage.entrarSesion('admin@example.com', '123');
+        await expect(page.getByText('Invalid email or password', { exact: true }));
+      
+    });
 
 
 
