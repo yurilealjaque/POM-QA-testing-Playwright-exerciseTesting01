@@ -1,36 +1,44 @@
 # Playwright E2E Testing – Arquitectura Page Object Model (POM)
 
-Este proyecto contiene una suite de pruebas automatizadas End-to-End (E2E) desarrollada con **Playwright** y **JavaScript**. Implementa el patrón de diseño **Page Object Model (POM)** para garantizar escalabilidad, legibilidad y facilidad de mantenimiento al probar una aplicación web de comercio electrónico.
+Este repositorio contiene una suite de pruebas automatizadas End-to-End (E2E) construida con **Playwright** y **JavaScript**. Implementa el patrón de diseño **Page Object Model (POM)** sobre una plataforma de comercio electrónico para desacoplar la interfaz técnica de usuario de los escenarios de validación de negocio.
 
 ---
 
 ## 1. Estructura del proyecto
 
 ```text
-├── pages/
-│   └── Login.js           <- Page Object: Localizadores y acciones de la vista
-└── tests/
-    └── Login.spec.js      <- Test Suite: Definición de casos de prueba y aserciones
+├── tests/
+│   ├── pages/
+│   │   ├── Login.js           <- Page Object: Selectores y acciones de Login
+│   │   └── Registro.js        <- Page Object: Selectores y acciones de Registro
+│   ├── Login.spec.js          <- Test Suite: Escenarios de prueba de Login
+│   └── Registro.spec.js       <- Test Suite: Escenarios de prueba de Registro
+├── playwright-report/         <- Reportes HTML generados post-ejecución
+├── test-results/              <- Evidencias de ejecución (capturas, videos, trazas)
+├── .gitignore
+├── package.json
+├── package-lock.json
+├── playwright.config.js       <- Configuración global de Playwright
+└── README.md / README.txt
 ```
 
 ---
 
 ## 2. ¿Qué es el patrón Page Object Model (POM)?
 
-El patrón POM divide la automatización en dos capas independientes:
+El patrón POM divide las responsabilidades del framework en dos componentes:
 
-### A) Capa de Interacción y Modelo (`pages/Login.js`)
+### A) Page Objects (`tests/pages/`)
 
-- Modela la página web como un objeto en JavaScript.
-- Almacena los localizadores del DOM orientados a accesibilidad.
-- Expone métodos de acción atómicos (ej. llenar inputs, clicks) y métodos de flujo compuesto (ej. `entrarSesion`).
-- **Regla de oro:** no contiene aserciones de prueba (`expect`).
+- Encapsulan los localizadores (Locators) del DOM de cada pantalla.
+- Proveen métodos atómicos (interacciones directas como llenar campos o presionar botones) y métodos orquestadores de alto nivel.
+- No realizan aserciones directas de prueba (`expect`); su única responsabilidad es operar la interfaz.
 
-### B) Capa de Casos de Prueba y Validación (`tests/Login.spec.js`)
+### B) Specs / Tests (`tests/*.spec.js`)
 
-- Define los escenarios de negocio (pruebas positivas y negativas).
-- Llama a los métodos del Page Object para ejecutar las acciones en el navegador.
-- Contiene exclusivamente las aserciones (`expect`) para validar el comportamiento.
+- Definen los escenarios funcionales (happy path y casos de error).
+- Instancian los Page Objects necesarios y ejecutan los flujos de usuario.
+- Contienen exclusivamente las aserciones (`expect`) para validar las respuestas del sistema.
 
 ---
 
@@ -40,70 +48,127 @@ El patrón POM divide la automatización en dos capas independientes:
 [Playwright Test Runner]
         |
         v
-1. Ejecuta tests/Login.spec.js y agrupa los tests con test.describe.
+1. Lee tests/Login.spec.js e inicia el bloque test.describe.
         |
         v
-2. Por cada test individual (aislado en su propio contexto de navegador):
+2. Por cada test individual (en un BrowserContext limpio y aislado):
         |
-        +--> test.beforeEach() -> Instancia: loginPage = new LoginPage(page).
+        +--> test.beforeEach() -> loginPage = new LoginPage(page).
         |
-        +--> Ejecuta el test: await loginPage.entrarSesion(usuario, password)
+        +--> Invoca el flujo: await loginPage.entrarSesion(email, password)
         |      |
-        |      +--> [Login.js] Navega a la URL base y abre el formulario.
-        |      +--> [Login.js] Rellena el campo Email mediante .fill()
-        |      +--> [Login.js] Rellena el campo Password mediante .fill()
-        |      +--> [Login.js] Dispara el clic en el botón 'Sign In'
+        |      +--> [Login.js] await page.goto(...) -> Navega a la app.
+        |      +--> [Login.js] Click en el enlace 'Login'.
+        |      +--> [Login.js] await llenarEmailAddressLogin(email)
+        |      +--> [Login.js] await llenarPasswordLogin(password)
+        |      +--> [Login.js] await clickbotonSingInLogin()
         |
-        +--> Ejecuta la aserción en el test:
-               - Login Válido: valida aparición de 'Logout' con expect().toHaveText()
-               - Login Inválido: valida aparición de error con expect().toBeVisible()
+        +--> Ejecuta la validación web-first (expect):
+               - Caso Válido: expect(getByText('Logout')).toHaveText('Logout')
+               - Caso Inválido: expect(getByText('Invalid email or password')).toBeVisible()
 ```
 
 ---
 
-## 4. Detalle técnico de los scripts
+## 4. Código fuente y explicación detallada
 
-### A) `pages/Login.js`
+### A) `tests/pages/Login.js`
 
-- **JSDoc** (`@param {import('@playwright/test').Page} page`): permite habilitar el autocompletado nativo (IntelliSense) de Playwright en JavaScript puro.
-- **Lazy Locators:** definir localizadores con `getByRole` y `getByLabel` no busca en el DOM de inmediato ni requiere `await` en el constructor; Playwright pospone la búsqueda hasta el momento exacto de interactuar (`.fill` o `.click`).
-- **Auto-Waiting:** al ejecutar métodos como `.fill()` o `.click()`, Playwright espera automáticamente a que los elementos estén presentes, visibles y habilitados.
+```javascript
+class LoginPage {
+    // propiedades de la pagina
+    // seran los elementos disponibles
+
+    /** @param {import('@playwright/test').Page} page */  // este comentario es para que vs code autocomplete con los metodos de play
+    constructor(page) {
+        this.page = page;
+
+        this.inputEmailAddressLogin = this.page.getByRole('textbox', { name: 'Email Address' })
+        this.inputPasswordLogin =  this.page.getByLabel('Password')
+        this.botonSingInLogin = this.page.getByRole('button', { name: 'Sign In' })
+    }
+
+    async llenarEmailAddressLogin(value){
+        await this.inputEmailAddressLogin.fill(value)
+    }
+
+    async llenarPasswordLogin(value){
+        await this.inputPasswordLogin.fill(value)
+    }
+
+    async clickbotonSingInLogin(){
+        await this.botonSingInLogin.click()
+    }
+
+    async entrarSesion(emailAddress, paswordlogin){
+        await this.page.goto('https://ecommerce-js-test.vercel.app/');
+        await this.page.getByRole('link', { name: 'Login' }).click();
+
+        await this.llenarEmailAddressLogin(emailAddress);
+        await this.llenarPasswordLogin(paswordlogin);
+        await this.clickbotonSingInLogin();
+    }
+}
+
+export default LoginPage
+```
+
+**Aspectos técnicos:**
+
+- **JSDoc Typing:** el bloque `/** @param {import('@playwright/test').Page} page */` provee tipado al motor de JavaScript en VS Code, permitiendo autocompletar métodos nativos de Playwright sin requerir TypeScript.
+- **Lazy Locators:** elementos como `this.page.getByRole()` y `this.page.getByLabel()` definen selectores basados en accesibilidad. No consultan el DOM en el constructor (no llevan `await`), sino que se evalúan de forma reactiva al ejecutar una acción (`.fill` o `.click`).
+- **Auto-Waiting:** al ejecutar acciones asíncronas (`fill`, `click`), Playwright espera automáticamente a que el elemento esté en el DOM, visible y habilitado.
 
 ### B) `tests/Login.spec.js`
 
-- **Hooks de ciclo de vida:** `test.beforeEach` garantiza un navegador limpio para cada prueba, aislando cookies, almacenamiento y sesiones residuales.
-- **Web-First Assertions:** aserciones como `expect(...).toBeVisible()` o `.toHaveText()` esperan activamente y reintentan la verificación de forma asíncrona hasta que se cumpla la condición esperada o termine el timeout configurado.
+```javascript
+import { test, expect } from "@playwright/test";
+import LoginPage from "./pages/Login";
+
+let loginPage;
+
+test.describe('Prubas de login e2e ' , () => {
+    test.beforeEach(async({page}) => {
+        loginPage = new LoginPage(page)
+    });
+
+    test('Registros con datos validos', async({page})=> {
+        await loginPage.entrarSesion('admin@example.com', 'admin123');
+        await expect(page.getByText('Logout', { exact: true })).toHaveText('Logout');
+    })
+
+    test('Registro con password inválido', async ({ page }) => {
+        await loginPage.entrarSesion('admin@example.com', '123');
+        await expect(page.getByText('Invalid email or password', { exact: true })).toBeVisible();
+    });
+});
+```
+
+**Aspectos técnicos:**
+
+- **`test.beforeEach` y aislamiento de contexto:** cada test corre en un `BrowserContext` nuevo e independiente, garantizando que cookies, caché y sesiones no se crucen entre pruebas.
+- **Web-First Assertions:** `expect(...).toHaveText()` y `expect(...).toBeVisible()` comprueban el DOM de manera asíncrona mediante reintentos continuos hasta cumplir la condición o agotar el timeout.
 
 ---
 
 ## 5. Comandos de ejecución
 
-1. Instalar dependencias:
+```bash
+# Instalar dependencias del proyecto:
+npm install
 
-   ```bash
-   npm install
-   ```
+# Instalar navegadores requeridos por Playwright (Chromium, Firefox, WebKit):
+npx playwright install
 
-2. Instalar navegadores de Playwright:
+# Ejecutar la suite completa de pruebas en la terminal:
+npx playwright test
 
-   ```bash
-   npx playwright install
-   ```
+# Ejecutar únicamente las pruebas del archivo Login.spec.js:
+npx playwright test tests/Login.spec.js
 
-3. Ejecutar todas las pruebas en consola:
+# Ejecutar las pruebas en modo interactivo (UI Mode):
+npx playwright test --ui
 
-   ```bash
-   npx playwright test
-   ```
-
-4. Ejecutar pruebas en modo visual e interactivo:
-
-   ```bash
-   npx playwright test --ui
-   ```
-
-5. Abrir reporte HTML de resultados:
-
-   ```bash
-   npx playwright show-report
-   ```
+# Visualizar el reporte HTML detallado de la última ejecución:
+npx playwright show-report
+```
