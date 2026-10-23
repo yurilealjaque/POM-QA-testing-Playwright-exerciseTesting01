@@ -34,9 +34,13 @@ class LoginPage {
     }
 
 
-    async entrarSesion(){
-        await this.page.goto('https://ecommerce-js-test.vercel.app/')
-        await this.page.getByRole('link', { name: 'Login' }).click
+    async entrarSesion(emailAddress, paswordlogin){
+        await this.page.goto('https://ecommerce-js-test.vercel.app/');
+        await this.page.getByRole('link', { name: 'Login' }).click;
+
+        await this.llenarEmailAddressLogin(emailAddress);
+        await this.llenarPasswordLogin(paswordlogin);
+        await this.clickbotonSingInLogin();
 
 
     }
@@ -46,4 +50,4 @@ class LoginPage {
 
 }
 
-
+export default LoginPage
