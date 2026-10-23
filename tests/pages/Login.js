@@ -28,7 +28,7 @@ class LoginPage {
     
     }
 
-    async clickbotonSingInLogin(value){
+    async clickbotonSingInLogin(){
 
         await this.botonSingInLogin.click()
     }
