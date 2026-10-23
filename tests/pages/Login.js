@@ -36,7 +36,7 @@ class LoginPage {
 
     async entrarSesion(emailAddress, paswordlogin){
         await this.page.goto('https://ecommerce-js-test.vercel.app/');
-        await this.page.getByRole('link', { name: 'Login' }).click;
+        await this.page.getByRole('link', { name: 'Login' }).click();
 
         await this.llenarEmailAddressLogin(emailAddress);
         await this.llenarPasswordLogin(paswordlogin);
